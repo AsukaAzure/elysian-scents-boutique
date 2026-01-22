@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, User } from 'lucide-react';
+import { ShoppingBag, Menu, X, User, LogOut, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { items } = useCart();
+  const { user, isAdmin, signOut } = useAuth();
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const navLinks = [
@@ -50,12 +59,46 @@ const Navbar = () => {
 
           {/* Right Icons */}
           <div className="flex items-center space-x-4">
-            <Link
-              to="/admin"
-              className="p-2 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <User className="w-5 h-5" />
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
+                  <User className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-card border-border">
+                {user ? (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-orders" className="flex items-center gap-2 cursor-pointer">
+                        <Package className="w-4 h-4" />
+                        My Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center gap-2 cursor-pointer">
+                          <User className="w-4 h-4" />
+                          Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => signOut()} className="flex items-center gap-2 cursor-pointer text-destructive">
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link to="/auth" className="flex items-center gap-2 cursor-pointer">
+                      <User className="w-4 h-4" />
+                      Sign In
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Link
               to="/checkout"
               className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
@@ -97,6 +140,15 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+              {user && (
+                <Link
+                  to="/my-orders"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-sm uppercase tracking-[0.15em] py-2 text-muted-foreground"
+                >
+                  My Orders
+                </Link>
+              )}
             </div>
           </div>
         )}
