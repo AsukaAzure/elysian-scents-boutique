@@ -54,6 +54,24 @@ export const useOrders = (userId?: string) => {
   });
 };
 
+export const useAdminOrders = () => {
+  return useQuery({
+    queryKey: ['admin-orders'],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('orders')
+        .select(`
+          *,
+          order_items(*)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Order[];
+    },
+  });
+};
+
 export const useUserOrders = () => {
   const { user } = useAuth();
   

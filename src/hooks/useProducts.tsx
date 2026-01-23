@@ -188,3 +188,11 @@ export const uploadProductImage = async (file: File): Promise<string> => {
 
   return data.publicUrl;
 };
+
+export const useUploadProductImage = () => {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      return uploadProductImage(file);
+    },
+  });
+};
