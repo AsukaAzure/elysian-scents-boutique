@@ -1,19 +1,16 @@
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import ProductCard from '@/components/products/ProductCard';
-import { getProductsByCategory, categories } from '@/data/products';
-
-const categoryTitles: Record<string, string> = {
-  'luxury-perfumes': 'Luxury Perfumes',
-  'perfumes': 'Perfumes',
-  'clothing': 'Clothing',
-  'accessories': 'Accessories',
-};
+import DbProductCard from '@/components/products/DbProductCard';
+import EmptyCategory from '@/components/products/EmptyCategory';
+import { useDbProductsByCategory } from '@/hooks/useDbProducts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Category = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const products = getProductsByCategory(categoryId || '');
-  const category = categories.find(c => c.id === categoryId);
+  const { data, isLoading } = useDbProductsByCategory(categoryId || '');
+
+  const products = data?.products || [];
+  const category = data?.category;
 
   return (
     <Layout>
@@ -23,9 +20,11 @@ const Category = () => {
           <div className="text-center max-w-2xl mx-auto">
             <p className="luxury-subheading mb-4">Collection</p>
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-foreground mb-6">
-              <span className="gold-gradient-text">{categoryTitles[categoryId || ''] || 'Products'}</span>
+              <span className="gold-gradient-text">
+                {category?.name || categoryId?.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Products'}
+              </span>
             </h1>
-            {category && (
+            {category && category.description && (
               <p className="text-muted-foreground text-lg">
                 {category.description}
               </p>
@@ -38,16 +37,25 @@ const Category = () => {
       {/* Products Grid */}
       <section className="pb-24 lg:pb-32">
         <div className="luxury-container">
-          {products.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="space-y-4">
+                  <Skeleton className="aspect-[3/4] w-full" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-5 w-1/4" />
+                </div>
+              ))}
+            </div>
+          ) : products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <DbProductCard key={product.id} product={product} index={index} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground">No products found in this category.</p>
-            </div>
+            <EmptyCategory categoryName={category?.name || 'This category'} />
           )}
         </div>
       </section>

@@ -1,18 +1,37 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Check } from 'lucide-react';
+import { ArrowLeft, Trash2, Check, Tag, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useCreateOrder } from '@/hooks/useOrders';
+import { useValidateCoupon, useRecordCouponUsage } from '@/hooks/useCoupons';
 import { toast } from 'sonner';
+
+interface AppliedCoupon {
+  id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+}
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
+  const { user } = useAuth();
+  const createOrder = useCreateOrder();
+  const validateCoupon = useValidateCoupon();
+  const recordCouponUsage = useRecordCouponUsage();
+  
   const [step, setStep] = useState<'cart' | 'details' | 'confirmation'>('cart');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -27,6 +46,46 @@ const Checkout = () => {
     }));
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    try {
+      const coupon = await validateCoupon.mutateAsync(couponCode.trim().toUpperCase());
+      setAppliedCoupon({
+        id: coupon.id,
+        code: coupon.code,
+        discount_type: coupon.discount_type,
+        discount_value: coupon.discount_value,
+      });
+      setCouponCode('');
+      toast.success(`Coupon "${coupon.code}" applied!`);
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid coupon code');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    toast.success('Coupon removed');
+  };
+
+  const calculateDiscount = () => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discount_type === 'percentage') {
+      return Math.round((total * appliedCoupon.discount_value) / 100 * 100) / 100;
+    }
+    return Math.min(appliedCoupon.discount_value, total);
+  };
+
+  const discount = calculateDiscount();
+  const finalTotal = Math.max(0, total - discount);
+
   const handleProceed = () => {
     if (items.length === 0) {
       toast.error('Your cart is empty');
@@ -35,7 +94,7 @@ const Checkout = () => {
     setStep('details');
   };
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.fullName || !formData.email || !formData.phone || !formData.address) {
@@ -43,9 +102,51 @@ const Checkout = () => {
       return;
     }
 
-    // Here you would normally submit to backend
-    setStep('confirmation');
-    clearCart();
+    if (!user) {
+      toast.error('Please sign in to place an order');
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      const orderPayload = {
+        order: {
+          user_id: user.id,
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          shipping_address: formData.address,
+          subtotal: total,
+          discount: discount,
+          total: finalTotal,
+          coupon_id: appliedCoupon?.id || null,
+          status: 'pending' as const,
+        },
+        items: items.map(item => ({
+          product_id: item.product.id,
+          product_name: item.product.name,
+          product_price: item.product.price,
+          quantity: item.quantity,
+        })),
+      };
+
+      const order = await createOrder.mutateAsync(orderPayload);
+      setOrderId(order.id);
+
+      // Record coupon usage if a coupon was applied
+      if (appliedCoupon) {
+        await recordCouponUsage.mutateAsync({
+          couponId: appliedCoupon.id,
+          orderId: order.id,
+        });
+      }
+
+      setStep('confirmation');
+      clearCart();
+      toast.success('Order placed successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to place order');
+    }
   };
 
   if (step === 'confirmation') {
@@ -63,14 +164,24 @@ const Checkout = () => {
               <p className="text-muted-foreground">
                 Thank you for your order, {formData.fullName}. We've sent a confirmation email to {formData.email}.
               </p>
+              {orderId && (
+                <p className="text-sm text-muted-foreground">
+                  Order ID: <span className="text-foreground font-mono">{orderId.slice(0, 8).toUpperCase()}</span>
+                </p>
+              )}
             </div>
             <div className="luxury-divider" />
             <p className="text-sm text-muted-foreground">
               Our team will process your order shortly. You will receive updates via email and phone.
             </p>
-            <Button asChild variant="luxury" size="luxuryLg">
-              <Link to="/">Continue Shopping</Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild variant="luxuryOutline" size="luxuryLg">
+                <Link to="/my-orders">View My Orders</Link>
+              </Button>
+              <Button asChild variant="luxury" size="luxuryLg">
+                <Link to="/">Continue Shopping</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </Layout>
@@ -178,11 +289,64 @@ const Checkout = () => {
                           </div>
                         ))}
                       </div>
+                      
+                      {/* Coupon Section */}
+                      <div className="luxury-divider !mx-0 !w-full" />
+                      <div className="space-y-3">
+                        <label className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Tag className="w-4 h-4" />
+                          Coupon Code
+                        </label>
+                        {appliedCoupon ? (
+                          <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded">
+                            <div className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-primary" />
+                              <span className="text-sm font-medium text-primary">
+                                {appliedCoupon.code}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({appliedCoupon.discount_type === 'percentage' 
+                                  ? `${appliedCoupon.discount_value}% off`
+                                  : `$${appliedCoupon.discount_value} off`})
+                              </span>
+                            </div>
+                            <button
+                              onClick={handleRemoveCoupon}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Input
+                              value={couponCode}
+                              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                              placeholder="Enter code"
+                              className="luxury-input flex-1"
+                            />
+                            <Button
+                              variant="luxuryOutline"
+                              onClick={handleApplyCoupon}
+                              disabled={isApplyingCoupon}
+                            >
+                              {isApplyingCoupon ? '...' : 'Apply'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      
                       <div className="luxury-divider !mx-0 !w-full" />
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="text-foreground">${total}</span>
                       </div>
+                      {discount > 0 && (
+                        <div className="flex justify-between text-primary">
+                          <span>Discount</span>
+                          <span>-${discount}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Shipping</span>
                         <span className="text-foreground">Complimentary</span>
@@ -190,7 +354,7 @@ const Checkout = () => {
                       <div className="luxury-divider !mx-0 !w-full" />
                       <div className="flex justify-between text-lg">
                         <span className="text-foreground">Total</span>
-                        <span className="text-primary font-medium">${total}</span>
+                        <span className="text-primary font-medium">${finalTotal}</span>
                       </div>
                       <Button
                         variant="luxury"
@@ -293,15 +457,33 @@ const Checkout = () => {
                       </span>
                     </div>
                   ))}
+                  {appliedCoupon && discount > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-foreground">${total}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-primary">
+                        <span>Discount ({appliedCoupon.code})</span>
+                        <span>-${discount}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="luxury-divider !mx-0 !w-full" />
                   <div className="flex justify-between text-lg">
                     <span className="text-foreground">Total</span>
-                    <span className="text-primary font-medium">${total}</span>
+                    <span className="text-primary font-medium">${finalTotal}</span>
                   </div>
                 </div>
 
-                <Button type="submit" variant="luxury" size="luxuryLg" className="w-full">
-                  Place Order
+                <Button 
+                  type="submit" 
+                  variant="luxury" 
+                  size="luxuryLg" 
+                  className="w-full"
+                  disabled={createOrder.isPending}
+                >
+                  {createOrder.isPending ? 'Placing Order...' : 'Place Order'}
                 </Button>
               </form>
             </div>
