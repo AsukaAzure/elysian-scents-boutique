@@ -2,18 +2,39 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Minus, Plus, Check } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { getProductById, getProductsByCategory } from '@/data/products';
+import { useDbProduct, useRelatedProducts } from '@/hooks/useDbProducts';
 import { useCart } from '@/context/CartContext';
 import { useState } from 'react';
-import ProductCard from '@/components/products/ProductCard';
+import DbProductCard from '@/components/products/DbProductCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
-  const product = getProductById(productId || '');
+  const { data: product, isLoading } = useDbProduct(productId || '');
+  const { data: relatedProducts = [] } = useRelatedProducts(productId || '', product?.category_id || null);
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="luxury-container py-12 lg:py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+            <Skeleton className="aspect-[3/4] w-full" />
+            <div className="space-y-8">
+              <Skeleton className="h-8 w-1/3" />
+              <Skeleton className="h-12 w-2/3" />
+              <Skeleton className="h-8 w-1/4" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!product) {
     return (
@@ -28,13 +49,23 @@ const ProductDetail = () => {
     );
   }
 
-  const relatedProducts = getProductsByCategory(product.category)
-    .filter(p => p.id !== product.id)
-    .slice(0, 4);
-
   const handleAddToCart = () => {
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      image: product.image_url || '/placeholder.svg',
+      category: product.category?.slug || 'uncategorized',
+      inStock: product.in_stock,
+      size: product.size || undefined,
+      notes: product.fragrance_notes 
+        ? [...(product.fragrance_notes.top || []), ...(product.fragrance_notes.middle || []), ...(product.fragrance_notes.base || [])].join(' | ')
+        : undefined,
+    };
+    
     for (let i = 0; i < quantity; i++) {
-      addToCart(product);
+      addToCart(cartProduct);
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -43,6 +74,16 @@ const ProductDetail = () => {
   const handlePurchaseNow = () => {
     handleAddToCart();
     navigate('/checkout');
+  };
+
+  const formatNotes = () => {
+    if (!product.fragrance_notes) return null;
+    const { top, middle, base } = product.fragrance_notes;
+    const parts = [];
+    if (top?.length) parts.push(`Top: ${top.join(', ')}`);
+    if (middle?.length) parts.push(`Heart: ${middle.join(', ')}`);
+    if (base?.length) parts.push(`Base: ${base.join(', ')}`);
+    return parts.join(' • ');
   };
 
   return (
@@ -66,20 +107,39 @@ const ProductDetail = () => {
             <div className="space-y-4">
               <div className="aspect-[3/4] bg-secondary overflow-hidden">
                 <img
-                  src={product.image}
+                  src={product.image_url || '/placeholder.svg'}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
               </div>
+              {/* Gallery thumbnails */}
+              {product.gallery_urls && product.gallery_urls.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {product.gallery_urls.slice(0, 4).map((url, index) => (
+                    <div key={index} className="aspect-square bg-secondary overflow-hidden">
+                      <img
+                        src={url}
+                        alt={`${product.name} - ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Product Info */}
             <div className="lg:py-8">
               <div className="sticky top-28 space-y-8">
                 {/* Category */}
-                <p className="luxury-subheading">
-                  {product.category.replace('-', ' ')}
-                </p>
+                {product.category && (
+                  <Link 
+                    to={`/category/${product.category.slug}`}
+                    className="luxury-subheading hover:text-primary transition-colors"
+                  >
+                    {product.category.name}
+                  </Link>
+                )}
 
                 {/* Name & Price */}
                 <div className="space-y-4">
@@ -91,7 +151,7 @@ const ProductDetail = () => {
 
                 {/* Availability */}
                 <div className="flex items-center gap-2">
-                {product.inStock ? (
+                  {product.in_stock ? (
                     <>
                       <div className="w-2 h-2 rounded-full bg-accent" />
                       <span className="text-sm text-muted-foreground">In Stock</span>
@@ -108,18 +168,20 @@ const ProductDetail = () => {
 
                 {/* Description */}
                 <div className="space-y-4">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {product.description}
-                  </p>
+                  {product.description && (
+                    <p className="text-muted-foreground leading-relaxed">
+                      {product.description}
+                    </p>
+                  )}
 
-                  {/* Notes (for perfumes) */}
-                  {product.notes && (
+                  {/* Fragrance Notes */}
+                  {formatNotes() && (
                     <div className="space-y-2">
                       <p className="text-sm uppercase tracking-[0.15em] text-primary">
                         Fragrance Notes
                       </p>
                       <p className="text-muted-foreground text-sm">
-                        {product.notes}
+                        {formatNotes()}
                       </p>
                     </div>
                   )}
@@ -131,23 +193,6 @@ const ProductDetail = () => {
                     </p>
                   )}
                 </div>
-
-                {/* Details */}
-                {product.details && (
-                  <div className="space-y-3">
-                    <p className="text-sm uppercase tracking-[0.15em] text-primary">
-                      Details
-                    </p>
-                    <ul className="space-y-2">
-                      {product.details.map((detail, index) => (
-                        <li key={index} className="flex items-start gap-3 text-sm text-muted-foreground">
-                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                          {detail}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
 
                 <div className="luxury-divider !mx-0 !w-full" />
 
@@ -182,7 +227,7 @@ const ProductDetail = () => {
                       size="luxuryLg"
                       className="flex-1"
                       onClick={handleAddToCart}
-                      disabled={!product.inStock || added}
+                      disabled={!product.in_stock || added}
                     >
                       {added ? 'Added to Cart' : 'Add to Cart'}
                     </Button>
@@ -191,7 +236,7 @@ const ProductDetail = () => {
                       size="luxuryLg"
                       className="flex-1"
                       onClick={handlePurchaseNow}
-                      disabled={!product.inStock}
+                      disabled={!product.in_stock}
                     >
                       Purchase Now
                     </Button>
@@ -215,7 +260,7 @@ const ProductDetail = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {relatedProducts.map((p, index) => (
-                <ProductCard key={p.id} product={p} index={index} />
+                <DbProductCard key={p.id} product={p} index={index} />
               ))}
             </div>
           </div>
