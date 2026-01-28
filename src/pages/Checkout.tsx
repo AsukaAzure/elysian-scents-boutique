@@ -409,10 +409,6 @@ const Checkout = () => {
                           <span>-{formatPrice(discount)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Shipping</span>
-                        <span className="text-foreground">Complimentary</span>
-                      </div>
                       <div className="luxury-divider !mx-0 !w-full" />
                       <div className="flex justify-between text-lg">
                         <span className="text-foreground">Total</span>
