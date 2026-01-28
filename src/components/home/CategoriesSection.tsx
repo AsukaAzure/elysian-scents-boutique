@@ -3,8 +3,21 @@ import CategoryCard from './CategoryCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo } from 'react';
 
+// Import category images
+import perfumesImg from '@/assets/category-perfumes.jpg';
+import luxuryPerfumesImg from '@/assets/category-luxury-perfumes.jpg';
+import clothingImg from '@/assets/category-clothing.jpg';
+import accessoriesImg from '@/assets/category-accessories.jpg';
+
 // Define the desired order for categories
 const CATEGORY_ORDER = ['perfumes', 'luxury-perfumes', 'clothing', 'accessories'];
+
+const CATEGORY_IMAGES = {
+  'perfumes': perfumesImg,
+  'luxury-perfumes': luxuryPerfumesImg,
+  'clothing': clothingImg,
+  'accessories': accessoriesImg,
+};
 
 const CategoriesSection = () => {
   const { data: categories = [], isLoading } = useDbCategories();
@@ -33,7 +46,7 @@ const CategoriesSection = () => {
           <div className="luxury-divider" />
         </div>
 
-        {/* Categories Grid */}
+        {/* Categories Flex Container */}
         {isLoading ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {[...Array(4)].map((_, i) => (
@@ -43,14 +56,14 @@ const CategoriesSection = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="flex flex-col lg:flex-row gap-4 h-[800px] lg:h-[600px] w-full">
             {sortedCategories.map((category, index) => (
               <CategoryCard
                 key={category.id}
                 id={category.slug}
                 name={category.name}
                 description={category.description || ''}
-                image={category.image_url || '/placeholder.svg'}
+                image={CATEGORY_IMAGES[category.slug as keyof typeof CATEGORY_IMAGES] || category.image_url || '/placeholder.svg'}
                 index={index}
               />
             ))}

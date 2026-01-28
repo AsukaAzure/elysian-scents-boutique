@@ -1,81 +1,77 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const Hero = () => {
   return (
-    <section className="relative min-h-[85vh] md:min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background with overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
+    <section className="relative pt-6 pb-12 lg:pt-10 lg:pb-20">
+      <div className="luxury-container">
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-border/40 bg-card/30 backdrop-blur-sm min-h-[75vh] md:min-h-[85vh] flex items-center justify-center">
+          {/* Background Elements */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-50" />
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
 
-      {/* Decorative elements */}
-      <div className="absolute top-1/4 left-1/4 w-64 md:w-96 h-64 md:h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-48 md:w-80 h-48 md:h-80 bg-primary/3 rounded-full blur-3xl" />
+          {/* Content */}
+          <div className="relative z-10 text-center px-6 py-12 md:px-12">
+            <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-4 md:space-y-6"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="w-10 h-px bg-primary/40" />
+                  <span className="luxury-subheading">Est. 2023</span>
+                  <span className="w-10 h-px bg-primary/40" />
+                </div>
 
-      {/* Content */}
-      <div className="relative z-10 luxury-container text-center px-4">
-        <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
-          {/* Subheading */}
-          <p className="luxury-subheading animate-fade-up text-xs md:text-sm" style={{ animationDelay: '0.1s' }}>
-            Premium Collection
-          </p>
+                <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.1] md:leading-tight">
+                  <span className="text-foreground/90">Curating</span>
+                  <br />
+                  <span className="gold-gradient-text italic">Essence</span>
+                </h1>
 
-          {/* Main Heading */}
-          <h1
-            className="font-serif text-4xl md:text-6xl lg:text-7xl leading-tight animate-fade-up"
-            style={{ animationDelay: '0.2s' }}
-          >
-            <span className="text-foreground">The Art of</span>
-            <br />
-            <span className="gold-gradient-text">Luxury</span>
-          </h1>
+                <p className="text-lg md:text-xl text-muted-foreground/80 max-w-xl mx-auto font-light leading-relaxed">
+                  Discover a sanctuary of scent where tradition meets contemporary luxury.
+                  Each bottle tells a story of identity and memory.
+                </p>
+              </motion.div>
 
-          {/* Description */}
-          <p
-            className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-up px-4"
-            style={{ animationDelay: '0.3s' }}
-          >
-            Discover our curated collection of exceptional products, each crafted with the finest materials from around the world.
-          </p>
-
-          {/* Divider */}
-          <div
-            className="luxury-divider animate-fade-up"
-            style={{ animationDelay: '0.4s' }}
-          />
-
-          {/* CTA Buttons */}
-          <div
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 animate-fade-up px-4"
-            style={{ animationDelay: '0.5s' }}
-          >
-            <Button
-              asChild
-              variant="luxury"
-              size="luxuryLg"
-              className="group w-full sm:w-auto"
-            >
-              <Link to="/category/perfumes">
-                Explore Collection
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="luxuryOutline"
-              size="luxuryLg"
-              className="w-full sm:w-auto"
-            >
-              <Link to="/about">
-                Our Story
-              </Link>
-            </Button>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="flex flex-col sm:flex-row items-center justify-center gap-5"
+              >
+                <Button
+                  asChild
+                  variant="luxury"
+                  size="luxuryLg"
+                  className="group min-w-[200px]"
+                >
+                  <Link to="/category/perfumes">
+                    View Collections
+                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="luxuryOutline"
+                  size="luxuryLg"
+                  className="min-w-[200px] border-primary/20 hover:border-primary/40"
+                >
+                  <Link to="/about">
+                    About Zhilak
+                  </Link>
+                </Button>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 md:h-32 bg-gradient-to-t from-background to-transparent" />
     </section>
   );
 };

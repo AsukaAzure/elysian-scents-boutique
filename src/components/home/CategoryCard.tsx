@@ -13,41 +13,44 @@ const CategoryCard = ({ id, name, description, image, index }: CategoryCardProps
   return (
     <Link
       to={`/category/${id}`}
-      className="group relative aspect-[3/4] overflow-hidden luxury-card animate-fade-up"
+      className="group relative flex-1 overflow-hidden rounded-[2rem] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:flex-[2.5]"
       style={{ animationDelay: `${0.1 + index * 0.1}s` }}
     >
-      {/* Image */}
-      <div className="absolute inset-0 bg-secondary">
+      {/* Background Image */}
+      <div className="absolute inset-0">
         <img
           src={image}
           alt={name}
-          className="w-full h-full object-cover opacity-60 transition-all duration-700 group-hover:opacity-80 group-hover:scale-105"
+          className="w-full h-full object-cover grayscale transition-all duration-1000 group-hover:grayscale-0 group-hover:scale-110"
         />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-background/50 group-hover:bg-transparent transition-colors duration-700" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-700" />
       </div>
-      
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent opacity-90" />
-      
+
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6">
-        <div className="space-y-1 md:space-y-2">
-          <h3 className="font-serif text-lg md:text-xl lg:text-2xl text-foreground group-hover:text-primary transition-colors duration-300">
+      <div className="absolute inset-x-0 bottom-0 p-8 flex flex-col items-start gap-4">
+        <div className="overflow-hidden">
+          <h3 className="font-serif text-3xl md:text-4xl text-foreground translate-y-12 group-hover:translate-y-0 transition-transform duration-700 ease-out">
             {name}
           </h3>
-          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
+        </div>
+
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100 max-w-xs">
+          <p className="text-sm md:text-base text-muted-foreground/90 leading-relaxed mb-6">
             {description}
           </p>
-        </div>
-        
-        {/* Arrow indicator */}
-        <div className="mt-3 md:mt-4 flex items-center text-primary opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-          <span className="text-xs uppercase tracking-[0.15em]">Explore</span>
-          <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 ml-1.5" />
+          <div className="flex items-center gap-2 text-primary font-serif">
+            <span className="text-sm uppercase tracking-widest">Explore</span>
+            <ArrowUpRight className="w-5 h-5" />
+          </div>
         </div>
       </div>
-      
-      {/* Border accent */}
-      <div className="absolute bottom-0 left-0 w-0 h-px bg-primary transition-all duration-500 group-hover:w-full" />
+
+      {/* Number Indicator */}
+      <div className="absolute top-8 right-8 text-2xl font-serif text-white/10 group-hover:text-primary/20 transition-colors duration-700">
+        {String(index + 1).padStart(2, '0')}
+      </div>
     </Link>
   );
 };
