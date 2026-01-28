@@ -66,7 +66,7 @@ const Navbar = () => {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger 
+                  <NavigationMenuTrigger
                     className={cn(
                       "text-sm uppercase tracking-[0.15em] transition-colors duration-300 bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent",
                       isActiveCategory
@@ -156,7 +156,7 @@ const Navbar = () => {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <Link
               to="/checkout"
               className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
@@ -168,7 +168,7 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
-            
+
             {/* Mobile Menu Button */}
             <button
               className="lg:hidden p-2 text-muted-foreground hover:text-foreground"
@@ -195,7 +195,7 @@ const Navbar = () => {
               >
                 Home
               </Link>
-              
+
               {/* Mobile Categories Accordion */}
               <div className="space-y-1">
                 <button
@@ -228,7 +228,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-              
+
               <Link
                 to="/about"
                 onClick={() => setIsMenuOpen(false)}
@@ -241,7 +241,7 @@ const Navbar = () => {
               >
                 About Us
               </Link>
-              
+
               {user && (
                 <Link
                   to="/my-orders"

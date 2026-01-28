@@ -9,18 +9,18 @@ const Index = () => {
       <CategoriesSection />
 
       {/* Brand Promise Section */}
-      <section className="py-16 lg:py-24">
+      <section className="py-16 lg:py-24 ">
         <div className="luxury-container">
           <div className="max-w-4xl mx-auto text-center space-y-6">
-            <p className="luxury-subheading">Our Promise</p>
+            <p className="luxury-subheading text-xl">Our Promise</p>
             <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl leading-tight text-foreground/90">
-              <span className="italic text-6xl md:text-7xl pr-3 font-medium">Zhilak</span>
-              <span className="font-light text-2xl md:text-3xl text-muted-foreground align-middle">more than a </span>
-              <span className="italic font-medium pl-2">scent.</span>
+              <span className="italic text-6xl md:text-7xl pr-3 font-medium gold-gradient-text">Zhilak</span>
+              <span className="font-light text-2xl md:text-3xl align-middle">more than a </span>
+              <span className="italic font-medium pl-2 gold-gradient-text">scent.</span>
               <span className="block mt-4 md:mt-6">
-                A signature of <span className="italic font-light text-2xl md:text-3xl px-1 font-serif text-muted-foreground">your</span> identity — a <span className="italic">gateway</span> to
+                A signature of <span className="italic font-light text-2xl md:text-3xl px-1 font-serif gold-gradient-text">your</span> identity — a <span className="italic gold-gradient-text">gateway</span> to
                 <br className="hidden md:block" />
-                your finest <span className="italic text-4xl md:text-5xl">memories.</span>
+                your finest <span className="italic text-4xl md:text-5xl gold-gradient-text">memories.</span>
               </span>
             </h2>
             <div className="luxury-divider opacity-50" />

@@ -1,172 +1,271 @@
+import { useRef } from 'react';
 import Layout from '@/components/layout/Layout';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, MoveRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
+
+// --- Assets & Icons ---
+const ScribbleUnderline = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 200 20" className={cn("absolute pointer-events-none text-primary", className)} fill="none" stroke="currentColor" strokeWidth="3">
+    <path d="M5,15 Q50,5 100,10 T195,15" />
+  </svg>
+);
+
+// --- Data ---
+const sections = [
+  {
+    id: 1,
+    title: "Origins",
+    subtitle: "The Beginning",
+    color: "#1a1a1a", // Charcoal
+    content: (
+      <>
+        <p className="mb-6">
+          Founded by a visionary individual during his BCA degree, <span className="text-foreground font-medium">Zhilak</span> was born from a simple yet profound idea: to create unique, high-quality fragrances that connect people.
+        </p>
+        <p>
+          It started with a single step—our first 10ml unisex perfume. What began as an experiment quickly captured hearts, gaining popularity for its exceptional scent profile and meticulous attention to detail.
+        </p>
+      </>
+    ),
+    image: "/placeholder.svg"
+  },
+  {
+    id: 2,
+    title: "Collection",
+    subtitle: "Curated Scents",
+    color: "#121212", // Darker Charcoal
+    content: (
+      <>
+        <p className="mb-6">
+          Our collection creates a narrative. From unisex fragrances crafted to evoke deep emotions to our crowd-favorite <span className="text-primary italic">CR7</span> blend.
+        </p>
+        <p className="mb-8">
+          Known for its bold, long-lasting aroma, our range is designed so that everyone finds a piece of themselves in our scents.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 border border-white/10 rounded-sm">
+            <h4 className="font-serif text-xl mb-1 text-primary">Unisex</h4>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Universal Appeal</p>
+          </div>
+          <div className="p-4 border border-white/10 rounded-sm">
+            <h4 className="font-serif text-xl mb-1 text-primary">Lasting</h4>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">All Day Wear</p>
+          </div>
+        </div>
+      </>
+    ),
+  },
+  {
+    id: 3,
+    title: "Presence",
+    subtitle: "Growing Roots",
+    color: "#0a0a0a", // Near Black
+    content: (
+      <>
+        <p className="mb-8">
+          We are committed to spreading the art of perfumery. Our footprint is expanding across the region, bringing our signature scents closer to you.
+        </p>
+        <div className="flex flex-wrap gap-x-6 gap-y-3 text-lg font-serif text-muted-foreground/60 leading-relaxed uppercase tracking-widest">
+          {['Udupi', 'Karkala', 'Sringeri', 'Koppa', 'Moodbidri', 'Mangalore', 'Shimoga'].map((loc) => (
+            <span key={loc} className="hover:text-primary transition-colors cursor-default">
+              {loc}
+            </span>
+          ))}
+        </div>
+      </>
+    )
+  },
+  {
+    id: 4,
+    title: "Connect",
+    subtitle: "Visit Us",
+    color: "#000000", // Black
+    content: (
+      <div className="space-y-8">
+        <p>
+          Explore Zhilak. Experience the difference. Find your signature scent with us.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm tracking-widest uppercase">
+          <div>
+            <h4 className="text-primary mb-2 flex items-center gap-2"><MapPin size={14} /> Location</h4>
+            <p className="text-muted-foreground">Udupi, Karnataka, India</p>
+          </div>
+          <div>
+            <h4 className="text-primary mb-2 flex items-center gap-2"><Mail size={14} /> Contact</h4>
+            <p className="text-muted-foreground lowercase">contact@zhilak.com</p>
+          </div>
+        </div>
+        <button className="group flex items-center gap-4 text-2xl font-serif hover:text-primary transition-colors pt-4">
+          Get in Touch <MoveRight className="group-hover:translate-x-4 transition-transform duration-500" />
+        </button>
+      </div>
+    )
+  }
+];
+
+// --- Components ---
+
+interface CardProps {
+  i: number;
+  item: typeof sections[0];
+  progress: MotionValue<number>;
+  range: number[];
+  targetScale: number;
+}
+
+const Card = ({ i, item, progress, range, targetScale }: CardProps) => {
+  const container = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: container,
+    offset: ['start end', 'start start']
+  });
+
+  const imageScale = useTransform(scrollYProgress, [0, 1], [2, 1]);
+  const scale = useTransform(progress, range, [1, targetScale]);
+
+  // Calculate a subtle fade out as it goes up
+  // We only want to fade out when the NEXT card (i+1) is coming in.
+  // But strictly, the scale effect covers most of it. Let's add explicit opacity.
+  // The 'range' is approximately [start_of_this_card, end_interaction]
+  // We can map opacity to the later part of the range.
+
+  return (
+    <div ref={container} className="h-screen flex items-center justify-center sticky top-0">
+      <motion.div
+        style={{
+          backgroundColor: item.color,
+          scale,
+          top: `calc(-5vh + ${i * 25}px)`
+        }}
+        className="flex flex-col relative -top-[25%] h-[500px] w-[90vw] md:w-[1000px] rounded-3xl p-10 md:p-16 border border-white/10 shadow-2xl origin-top"
+      >
+        <div className="flex flex-col md:flex-row h-full gap-12">
+          {/* Text Content */}
+          <div className="w-full md:w-3/5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-8 h-px bg-primary" />
+                <span className="text-primary uppercase tracking-[0.2em] text-xs font-medium">{item.subtitle}</span>
+              </div>
+              <h2 className="font-serif text-4xl md:text-6xl mb-8 leading-none">{item.title}</h2>
+              <div className="text-muted-foreground font-light leading-relaxed text-lg">
+                {item.content}
+              </div>
+            </div>
+            <div className="text-9xl font-serif font-black text-white/5 absolute -right-4 -bottom-12 select-none pointer-events-none">
+              {String(i + 1).padStart(2, '0')}
+            </div>
+          </div>
+
+          {/* Image / Visual Area */}
+          <div className="w-full md:w-2/5 relative h-64 md:h-auto rounded-2xl overflow-hidden bg-white/5">
+            <motion.div style={{ scale: imageScale }} className="w-full h-full relative">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent p-8 flex items-center justify-center">
+                  <div className="w-full h-full border border-white/10 rounded-xl relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent opacity-50" />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
 
 const About = () => {
+  const container = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: container,
+    offset: ['start start', 'end end']
+  });
+
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="pt-12 pb-16 lg:pt-20 lg:pb-24">
-        <div className="luxury-container">
-          <div className="max-w-4xl mx-auto text-center">
-            <p className="luxury-subheading mb-4 animate-fade-up">Our Story</p>
-            <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-6 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-              A Legacy of <span className="gold-gradient-text">Excellence</span>
-            </h1>
-            <div className="luxury-divider animate-fade-up" style={{ animationDelay: '0.2s' }} />
-          </div>
-        </div>
-      </section>
+      <div className="bg-background min-h-screen">
 
-      {/* Brand Story */}
-      <section className="pb-16 lg:pb-24">
-        <div className="luxury-container">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h2 className="font-serif text-2xl md:text-3xl text-foreground">
-                  The House of <span className="gold-gradient-text">Zhilak</span>
-                </h2>
-                <p className="text-muted-foreground leading-relaxed text-sm md:text-base">
-                  Zhilak was born from a singular vision: to create products that transcend time. 
-                  Our founders believed that a truly exceptional product should tell a story—one 
-                  that unfolds with each detail, evoking memories and emotions that linger.
-                </p>
-                <p className="text-muted-foreground leading-relaxed text-sm md:text-base">
-                  We have remained steadfast in our commitment to excellence. Every item in our 
-                  collection is crafted using the finest materials sourced from around the world—
-                  from precious ingredients to exquisite fabrics and rare accessories.
-                </p>
-              </div>
-              <div className="luxury-divider !mx-0" />
-              <blockquote className="font-serif text-lg md:text-xl italic text-foreground/80">
-                "Excellence is not a destination, but a journey we take with every creation."
-                <span className="block text-sm text-muted-foreground mt-2 not-italic">
-                  — Zhilak Founding Team
-                </span>
-              </blockquote>
-            </div>
-            <div className="aspect-[4/5] bg-secondary overflow-hidden">
-              <img
-                src="/placeholder.svg"
-                alt="Zhilak Atelier"
-                className="w-full h-full object-cover"
+        {/* Hero Section - Static content before stack */}
+        <section className="h-[80vh] flex items-center justify-center relative overflow-hidden">
+          <div className="luxury-container text-center relative z-10">
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-primary uppercase tracking-[0.4em] text-sm mb-6"
+            >
+              The Story
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="font-serif text-6xl md:text-8xl lg:text-9xl mb-4"
+            >
+              We Are <br />
+              <span className="relative inline-block text-primary italic">
+                Zhilak
+                <motion.div
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <ScribbleUnderline className="w-full h-full -bottom-2 md:-bottom-4 opacity-80" />
+                </motion.div>
+              </span>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="text-xl md:text-2xl text-muted-foreground mt-8 max-w-2xl mx-auto leading-relaxed"
+            >
+              "Charm in every fragrance."
+            </motion.p>
+          </div>
+
+          {/* Background Texture elements */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background" />
+        </section>
+
+        {/* Stacking Card Section */}
+        <div ref={container} className="relative pb-[20vh]">
+          {sections.map((item, i) => {
+            // Logic for scaling: 
+            // We want cards to stack. As the scroll progresses, the earlier cards should scale down slightly.
+            // We map the *entire* container scroll progress to each card.
+            const targetScale = 1 - ((sections.length - i) * 0.05);
+            // Each card interacts over a portion of the scroll
+            // The range start is roughly when it hits top.
+            // But with the 'sticky' css, they are all in flow.
+            return (
+              <Card
+                key={i}
+                i={i}
+                item={item}
+                progress={scrollYProgress}
+                range={[i * 0.25, 1]}
+                targetScale={targetScale}
               />
-            </div>
-          </div>
+            );
+          })}
         </div>
-      </section>
 
-      {/* Values */}
-      <section className="py-16 lg:py-24 bg-card/50">
-        <div className="luxury-container">
-          <div className="text-center mb-12">
-            <p className="luxury-subheading mb-3">Our Philosophy</p>
-            <h2 className="font-serif text-2xl md:text-3xl text-foreground">
-              Craftsmanship & <span className="gold-gradient-text">Quality</span>
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Finest Materials',
-                description: 'We source only the rarest and most precious raw materials, ensuring each product meets our exacting standards.',
-              },
-              {
-                title: 'Master Artisans',
-                description: 'Our creations are composed by world-renowned artisans who bring decades of expertise to every piece.',
-              },
-              {
-                title: 'Timeless Elegance',
-                description: 'We believe in creating products that transcend trends—pieces that become a signature, a legacy.',
-              },
-            ].map((value, index) => (
-              <div
-                key={index}
-                className="text-center space-y-3 p-6 animate-fade-up"
-                style={{ animationDelay: `${0.1 + index * 0.1}s` }}
-              >
-                <div className="w-12 h-12 md:w-16 md:h-16 mx-auto border border-primary/30 flex items-center justify-center">
-                  <span className="font-serif text-xl md:text-2xl text-primary">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                </div>
-                <h3 className="font-serif text-lg md:text-xl text-foreground">{value.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {value.description}
-                </p>
-              </div>
-            ))}
-          </div>
+        {/* Footer spacer if needed, or simple footer */}
+        <div className="h-[20vh] flex items-center justify-center bg-black">
+          <p className="font-serif text-zinc-800 text-4xl italic">Fin.</p>
         </div>
-      </section>
 
-      {/* Contact Section */}
-      <section className="py-16 lg:py-24">
-        <div className="luxury-container">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="luxury-subheading mb-3">Get in Touch</p>
-              <h2 className="font-serif text-2xl md:text-3xl text-foreground mb-4">
-                Visit <span className="gold-gradient-text">Zhilak</span>
-              </h2>
-              <div className="luxury-divider" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-              {/* Contact Info */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <MapPin className="w-5 h-5 text-primary mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-serif text-base md:text-lg text-foreground mb-1">Address</h4>
-                    <p className="text-muted-foreground text-sm">
-                      12 Rue de la Paix<br />
-                      75002 Paris, France
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Phone className="w-5 h-5 text-primary mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-serif text-base md:text-lg text-foreground mb-1">Phone</h4>
-                    <p className="text-muted-foreground text-sm">
-                      +33 1 42 60 12 34
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Mail className="w-5 h-5 text-primary mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-serif text-base md:text-lg text-foreground mb-1">Email</h4>
-                    <p className="text-muted-foreground text-sm">
-                      contact@zhilak.com
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Clock className="w-5 h-5 text-primary mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-serif text-base md:text-lg text-foreground mb-1">Hours</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Monday - Saturday: 10:00 - 19:00<br />
-                      Sunday: 12:00 - 18:00
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Image/Map Placeholder */}
-              <div className="aspect-square bg-secondary overflow-hidden">
-                <img
-                  src="/placeholder.svg"
-                  alt="Zhilak Boutique"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </Layout>
   );
 };
