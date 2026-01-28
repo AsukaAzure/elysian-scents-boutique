@@ -4,20 +4,18 @@ import { MapPin, Phone, Mail, MoveRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 
-// --- Assets & Icons ---
 const ScribbleUnderline = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 200 20" className={cn("absolute pointer-events-none text-primary", className)} fill="none" stroke="currentColor" strokeWidth="3">
     <path d="M5,15 Q50,5 100,10 T195,15" />
   </svg>
 );
 
-// --- Data ---
 const sections = [
   {
     id: 1,
     title: "Origins",
     subtitle: "The Beginning",
-    color: "#1a1a1a", // Charcoal
+    color: "#1a1a1a",
     content: (
       <>
         <p className="mb-6">
@@ -34,7 +32,7 @@ const sections = [
     id: 2,
     title: "Collection",
     subtitle: "Curated Scents",
-    color: "#121212", // Darker Charcoal
+    color: "#121212",
     content: (
       <>
         <p className="mb-6">
@@ -43,7 +41,7 @@ const sections = [
         <p className="mb-8">
           Known for its bold, long-lasting aroma, our range is designed so that everyone finds a piece of themselves in our scents.
         </p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="hidden md:grid grid-cols-2 gap-4">
           <div className="p-4 border border-white/10 rounded-sm">
             <h4 className="font-serif text-xl mb-1 text-primary">Unisex</h4>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Universal Appeal</p>
@@ -60,14 +58,14 @@ const sections = [
     id: 3,
     title: "Presence",
     subtitle: "Growing Roots",
-    color: "#0a0a0a", // Near Black
+    color: "#0a0a0a",
     content: (
       <>
         <p className="mb-8">
           We are committed to spreading the art of perfumery. Our footprint is expanding across the region, bringing our signature scents closer to you.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-lg font-serif text-muted-foreground/60 leading-relaxed uppercase tracking-widest">
-          {['Udupi', 'Karkala', 'Sringeri', 'Koppa', 'Moodbidri', 'Mangalore', 'Shimoga'].map((loc) => (
+          {['Udupi', 'Karkala', 'Sringeri', 'Koppa', 'Moodbidri', 'Shimoga', 'Mangalore'].map((loc) => (
             <span key={loc} className="hover:text-primary transition-colors cursor-default">
               {loc}
             </span>
@@ -80,7 +78,7 @@ const sections = [
     id: 4,
     title: "Connect",
     subtitle: "Visit Us",
-    color: "#000000", // Black
+    color: "#000000",
     content: (
       <div className="space-y-8">
         <p>
@@ -104,7 +102,6 @@ const sections = [
   }
 ];
 
-// --- Components ---
 
 interface CardProps {
   i: number;
@@ -124,12 +121,6 @@ const Card = ({ i, item, progress, range, targetScale }: CardProps) => {
   const imageScale = useTransform(scrollYProgress, [0, 1], [2, 1]);
   const scale = useTransform(progress, range, [1, targetScale]);
 
-  // Calculate a subtle fade out as it goes up
-  // We only want to fade out when the NEXT card (i+1) is coming in.
-  // But strictly, the scale effect covers most of it. Let's add explicit opacity.
-  // The 'range' is approximately [start_of_this_card, end_interaction]
-  // We can map opacity to the later part of the range.
-
   return (
     <div ref={container} className="h-screen flex items-center justify-center sticky top-0">
       <motion.div
@@ -141,7 +132,6 @@ const Card = ({ i, item, progress, range, targetScale }: CardProps) => {
         className="flex flex-col relative -top-[25%] h-[500px] w-[90vw] md:w-[1000px] rounded-3xl p-10 md:p-16 border border-white/10 shadow-2xl origin-top"
       >
         <div className="flex flex-col md:flex-row h-full gap-12">
-          {/* Text Content */}
           <div className="w-full md:w-3/5 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-3 mb-4">
@@ -158,7 +148,6 @@ const Card = ({ i, item, progress, range, targetScale }: CardProps) => {
             </div>
           </div>
 
-          {/* Image / Visual Area */}
           <div className="w-full md:w-2/5 relative h-64 md:h-auto rounded-2xl overflow-hidden bg-white/5">
             <motion.div style={{ scale: imageScale }} className="w-full h-full relative">
               {item.image ? (
@@ -193,8 +182,7 @@ const About = () => {
     <Layout>
       <div className="bg-background min-h-screen">
 
-        {/* Hero Section - Static content before stack */}
-        <section className="h-[80vh] flex items-center justify-center relative overflow-hidden">
+        <section className="h-[80vh] flex items-center justify-center relative overflow-hidden sticky top-0 z-0">
           <div className="luxury-container text-center relative z-10">
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -233,20 +221,12 @@ const About = () => {
             </motion.p>
           </div>
 
-          {/* Background Texture elements */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background" />
         </section>
 
-        {/* Stacking Card Section */}
-        <div ref={container} className="relative pb-[20vh]">
+        <div ref={container} className="relative z-10 bg-background pb-[20vh]">
           {sections.map((item, i) => {
-            // Logic for scaling: 
-            // We want cards to stack. As the scroll progresses, the earlier cards should scale down slightly.
-            // We map the *entire* container scroll progress to each card.
             const targetScale = 1 - ((sections.length - i) * 0.05);
-            // Each card interacts over a portion of the scroll
-            // The range start is roughly when it hits top.
-            // But with the 'sticky' css, they are all in flow.
             return (
               <Card
                 key={i}
@@ -259,12 +239,6 @@ const About = () => {
             );
           })}
         </div>
-
-        {/* Footer spacer if needed, or simple footer */}
-        <div className="h-[20vh] flex items-center justify-center bg-black">
-          <p className="font-serif text-zinc-800 text-4xl italic">Fin.</p>
-        </div>
-
       </div>
     </Layout>
   );
