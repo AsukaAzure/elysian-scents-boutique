@@ -71,7 +71,7 @@ const sections = [
           We are committed to spreading the art of perfumery. Our footprint is expanding across the region, bringing our signature scents closer to you.
         </p>
         <div className="sm:flex sm:flex-wrap gap-x-6 grid grid-cols-2  sm:gap-y-3 text-lg font-serif text-muted-foreground/60 leading-relaxed uppercase tracking-widest">
-          {['Udupi', 'Karkala', 'Sringeri', 'Koppa', 'Moodbidri', 'Shimoga', 'Mangalore'].map((loc) => (
+          {['Udupi', 'Karkala', 'Sringeri', 'Koppa', 'Moodbidri', 'Shivamogga', 'Mangalore'].map((loc) => (
             <span key={loc} className="hover:text-primary transition-colors cursor-default">
               {loc}
             </span>
