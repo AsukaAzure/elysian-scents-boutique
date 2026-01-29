@@ -83,8 +83,8 @@ const AdminUsers = () => {
             <p className="text-muted-foreground">No users found</p>
           </div>
         ) : (
-          <div className="bg-card border border-border/50 overflow-hidden">
-            <table className="w-full">
+          <div className="bg-card border border-border/50 overflow-x-auto">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-border/50">
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Name</th>
