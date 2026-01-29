@@ -16,6 +16,8 @@ export interface Order {
   id: string;
   user_id: string | null;
   status: 'pending' | 'completed';
+  payment_method: 'cod' | 'online';
+  payment_status: 'pending' | 'paid' | 'failed';
   full_name: string;
   phone: string;
   email: string;
@@ -30,7 +32,7 @@ export interface Order {
 
 export const useOrders = (userId?: string) => {
   const { isAdmin } = useAuth();
-  
+
   return useQuery({
     queryKey: ['orders', userId, isAdmin],
     queryFn: async () => {
@@ -41,11 +43,11 @@ export const useOrders = (userId?: string) => {
           order_items(*)
         `)
         .order('created_at', { ascending: false });
-      
+
       if (userId && !isAdmin) {
         query = query.eq('user_id', userId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as Order[];
@@ -65,7 +67,7 @@ export const useAdminOrders = () => {
           order_items(*)
         `)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as Order[];
     },
@@ -75,12 +77,12 @@ export const useAdminOrders = () => {
 export const useUserOrders = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   return useQuery({
     queryKey: ['user-orders', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const { data, error } = await db
         .from('orders')
         .select(`
@@ -89,7 +91,7 @@ export const useUserOrders = () => {
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as Order[];
     },
@@ -99,14 +101,14 @@ export const useUserOrders = () => {
 
 export const useCreateOrder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      order, 
-      items 
-    }: { 
-      order: Omit<Order, 'id' | 'created_at' | 'order_items'>; 
-      items: { product_id: string | null; product_name: string; product_price: number; quantity: number }[] 
+    mutationFn: async ({
+      order,
+      items
+    }: {
+      order: Omit<Order, 'id' | 'created_at' | 'order_items'>;
+      items: { product_id: string | null; product_name: string; product_price: number; quantity: number }[]
     }) => {
       // Create order
       const { data: orderData, error: orderError } = await db
@@ -114,22 +116,22 @@ export const useCreateOrder = () => {
         .insert(order)
         .select()
         .single();
-      
+
       if (orderError) throw orderError;
       if (!orderData) throw new Error('Failed to create order');
-      
+
       // Create order items
       const orderItems = items.map(item => ({
         ...item,
         order_id: orderData.id,
       }));
-      
+
       const { error: itemsError } = await db
         .from('order_items')
         .insert(orderItems);
-      
+
       if (itemsError) throw itemsError;
-      
+
       return orderData;
     },
     onSuccess: () => {
@@ -145,7 +147,7 @@ export const useCreateOrder = () => {
 
 export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: 'pending' | 'completed' }) => {
       const { data, error } = await db
@@ -154,7 +156,7 @@ export const useUpdateOrderStatus = () => {
         .eq('id', orderId)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },

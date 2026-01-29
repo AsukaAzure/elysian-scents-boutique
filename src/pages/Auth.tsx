@@ -1,11 +1,34 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const signupSchema = z.object({
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Must contain at least one number'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type SignupErrors = {
+  fullName?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+};
 
 type AuthMode = 'login' | 'signup';
 
@@ -19,25 +42,65 @@ const Auth = () => {
     email: '',
     password: '',
     fullName: '',
+    confirmPassword: '',
   });
+  const [errors, setErrors] = useState<SignupErrors>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+    // Clear error when user starts typing
+    if (errors[name as keyof SignupErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
+  };
+
+  const validate = () => {
+    if (mode === 'login') return true;
+
+    const result = signupSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: SignupErrors = {};
+      result.error.issues.forEach((issue) => {
+        const path = issue.path[0] as keyof SignupErrors;
+        if (!fieldErrors[path]) {
+          fieldErrors[path] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  const getPasswordRequirements = () => {
+    const p = formData.password;
+    return [
+      { label: '8+ characters', met: p.length >= 8 },
+      { label: 'One uppercase', met: /[A-Z]/.test(p) },
+      { label: 'One lowercase', met: /[a-z]/.test(p) },
+      { label: 'One number', met: /[0-9]/.test(p) },
+    ];
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    if (!validate()) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (mode === 'signup') {
-        if (!formData.fullName.trim()) {
-          toast.error('Please enter your full name');
-          return;
-        }
         const { error } = await signUp(formData.email, formData.password, formData.fullName);
         if (error) throw error;
         toast.success('Account created successfully!');
@@ -79,7 +142,7 @@ const Auth = () => {
           <div className="text-center">
             <Link to="/" className="inline-block">
               <span className="font-serif text-3xl tracking-wider gold-gradient-text">
-                MAISON NOIR
+                ZHILAK
               </span>
             </Link>
             <h1 className="mt-8 font-serif text-3xl text-foreground">
@@ -107,9 +170,12 @@ const Auth = () => {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   className="luxury-input"
-                  placeholder="John Doe"
+                  placeholder="Your Name"
                   required
                 />
+                {errors.fullName && (
+                  <p className="text-xs text-destructive mt-1">{errors.fullName}</p>
+                )}
               </div>
             )}
 
@@ -123,14 +189,17 @@ const Auth = () => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="luxury-input"
-                placeholder="you@example.com"
+                className={`luxury-input ${errors.email ? 'border-destructive' : ''}`}
+                placeholder="user@gmail.com"
                 required
               />
+              {errors.email && (
+                <p className="text-xs text-destructive mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-muted-foreground">
+              <Label htmlFor="password" title={mode === 'signup' ? "Password Requirements" : ""} className="text-muted-foreground">
                 Password
               </Label>
               <div className="relative">
@@ -140,10 +209,9 @@ const Auth = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="luxury-input pr-10"
+                  className={`luxury-input pr-10 ${errors.password ? 'border-destructive' : ''}`}
                   placeholder="••••••••"
                   required
-                  minLength={6}
                 />
                 <button
                   type="button"
@@ -153,7 +221,48 @@ const Auth = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-destructive mt-1">{errors.password}</p>
+              )}
+
+              {mode === 'signup' && (
+                <div className="grid grid-cols-2 gap-2 mt-3 p-3 bg-secondary/30 rounded-lg border border-border/50">
+                  {getPasswordRequirements().map((req, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                      {req.met ? (
+                        <CheckCircle2 className="w-3 h-3 text-primary" />
+                      ) : (
+                        <Circle className="w-3 h-3 text-muted-foreground/30" />
+                      )}
+                      <span className={req.met ? 'text-primary' : 'text-muted-foreground'}>
+                        {req.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-muted-foreground">
+                  Confirm Password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`luxury-input ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                  placeholder="••••••••"
+                  required
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"

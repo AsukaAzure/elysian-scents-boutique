@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Check, Tag, X, Ticket } from 'lucide-react';
+import { ArrowLeft, Trash2, Check, Tag, X, Ticket, CreditCard, Banknote } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,8 @@ const Checkout = () => {
     phone: '',
     address: '',
   });
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -100,6 +102,68 @@ const Checkout = () => {
     setStep('details');
   };
 
+  const handleOnlinePayment = async (orderPayload: any) => {
+    setIsProcessingPayment(true);
+
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_placeholder',
+      amount: Math.round(finalTotal * 100), // Amount in paise
+      currency: 'INR',
+      name: 'ZHILAK',
+      description: 'Luxury Collection Purchase',
+      image: '/logo-gold.png', // Replace with your logo
+      handler: async function (response: any) {
+        try {
+          // Add payment status to payload
+          const finalPayload = {
+            ...orderPayload,
+            order: {
+              ...orderPayload.order,
+              payment_method: 'online' as const,
+              payment_status: 'paid' as const,
+              status: 'completed' as const,
+            }
+          };
+
+          const order = await createOrder.mutateAsync(finalPayload);
+          setOrderId(order.id);
+
+          if (appliedCoupon) {
+            await recordCouponUsage.mutateAsync({
+              couponId: appliedCoupon.id,
+              orderId: order.id,
+            });
+          }
+
+          setStep('confirmation');
+          clearCart();
+          toast.success('Payment successful & order placed!');
+        } catch (error) {
+          toast.error('Failed to complete order after payment. Please contact support.');
+        } finally {
+          setIsProcessingPayment(false);
+        }
+      },
+      prefill: {
+        name: formData.fullName,
+        email: formData.email,
+        contact: formData.phone,
+      },
+      theme: {
+        color: '#D4AF37', // Gold color
+      },
+      modal: {
+        ondismiss: function () {
+          setIsProcessingPayment(false);
+          toast.info('Payment cancelled');
+        }
+      }
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
+  };
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -114,49 +178,50 @@ const Checkout = () => {
       return;
     }
 
-    try {
-      const orderPayload = {
-        order: {
-          user_id: user.id,
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          shipping_address: formData.address,
-          subtotal: total,
-          discount: discount,
-          total: finalTotal,
-          coupon_id: appliedCoupon?.id || null,
-          status: 'pending' as const,
-        },
-        items: items.map(item => {
-          // Handle composite IDs for clothing items (e.g. "uuid-Size")
-          // We need to send the original UUID to the database
-          let productId = item.product.id;
-          let productName = item.product.name;
+    const orderPayload = {
+      order: {
+        user_id: user.id,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        shipping_address: formData.address,
+        subtotal: total,
+        discount: discount,
+        total: finalTotal,
+        coupon_id: appliedCoupon?.id || null,
+        status: 'pending' as const,
+        payment_method: paymentMethod,
+        payment_status: 'pending' as const,
+      },
+      items: items.map(item => {
+        let productId = item.product.id;
+        let productName = item.product.name;
 
-          if (item.product.size) {
-            // Append size to name for the order record since order_items doesn't have a size column
-            productName = `${item.product.name} (${item.product.size})`;
-
-            // If the ID ends with the size suffix (added in ProductDetail.tsx), strip it to get real UUID
-            if (productId.endsWith(`-${item.product.size}`)) {
-              productId = productId.slice(0, -(item.product.size.length + 1));
-            }
+        if (item.product.size) {
+          productName = `${item.product.name} (${item.product.size})`;
+          if (productId.endsWith(`-${item.product.size}`)) {
+            productId = productId.slice(0, -(item.product.size.length + 1));
           }
+        }
 
-          return {
-            product_id: productId,
-            product_name: productName,
-            product_price: item.product.price,
-            quantity: item.quantity,
-          };
-        }),
-      };
+        return {
+          product_id: productId,
+          product_name: productName,
+          product_price: item.product.price,
+          quantity: item.quantity,
+        };
+      }),
+    };
 
+    if (paymentMethod === 'online') {
+      await handleOnlinePayment(orderPayload);
+      return;
+    }
+
+    try {
       const order = await createOrder.mutateAsync(orderPayload);
       setOrderId(order.id);
 
-      // Record coupon usage if a coupon was applied
       if (appliedCoupon) {
         await recordCouponUsage.mutateAsync({
           couponId: appliedCoupon.id,
@@ -504,6 +569,62 @@ const Checkout = () => {
                   </div>
                 </div>
 
+                {/* Payment Method */}
+                <div className="space-y-6">
+                  <h3 className="font-serif text-xl text-foreground">
+                    Payment Method
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`flex items-center gap-4 p-4 border transition-all ${paymentMethod === 'cod'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border/50 bg-card hover:border-primary/50'
+                        }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === 'cod' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                        }`}>
+                        <Banknote className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-foreground">Cash on Delivery</p>
+                        <p className="text-xs text-muted-foreground">Pay when you receive</p>
+                      </div>
+                      <div className="ml-auto">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === 'cod' ? 'border-primary bg-primary' : 'border-muted-foreground'
+                          }`}>
+                          {paymentMethod === 'cod' && <Check className="w-3 h-3 text-primary-foreground" />}
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('online')}
+                      className={`flex items-center gap-4 p-4 border transition-all ${paymentMethod === 'online'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border/50 bg-card hover:border-primary/50'
+                        }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === 'online' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                        }`}>
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-foreground">Online Payment</p>
+                        <p className="text-xs text-muted-foreground">Cards, UPI, Netbanking</p>
+                      </div>
+                      <div className="ml-auto">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === 'online' ? 'border-primary bg-primary' : 'border-muted-foreground'
+                          }`}>
+                          {paymentMethod === 'online' && <Check className="w-3 h-3 text-primary-foreground" />}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Order Summary */}
                 <div className="space-y-6 p-6 bg-card border border-border/50">
                   <h3 className="font-serif text-xl text-foreground">
@@ -544,9 +665,11 @@ const Checkout = () => {
                   variant="luxury"
                   size="luxuryLg"
                   className="w-full"
-                  disabled={createOrder.isPending}
+                  disabled={createOrder.isPending || isProcessingPayment}
                 >
-                  {createOrder.isPending ? 'Placing Order...' : 'Place Order'}
+                  {createOrder.isPending || isProcessingPayment
+                    ? (isProcessingPayment ? 'Processing Payment...' : 'Placing Order...')
+                    : paymentMethod === 'online' ? 'Pay & Place Order' : 'Place Order'}
                 </Button>
               </form>
             </div>
